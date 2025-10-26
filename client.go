@@ -105,7 +105,7 @@ func (c *Client) offerNew(_ context.Context) (*clientQUICConnection, error) {
 	if err != nil {
 		return nil, err
 	}
-	var quicConn quic.Connection
+	var quicConn *quic.Conn
 	if c.zeroRTTHandshake {
 		quicConn, err = qtls.DialEarly(c.ctx, bufio.NewUnbindPacketConn(udpConn), udpConn.RemoteAddr(), c.tlsConfig, c.quicConfig)
 	} else {
@@ -138,7 +138,7 @@ func (c *Client) offerNew(_ context.Context) (*clientQUICConnection, error) {
 	return conn, nil
 }
 
-func (c *Client) clientHandshake(conn quic.Connection) error {
+func (c *Client) clientHandshake(conn *quic.Conn) error {
 	authStream, err := conn.OpenUniStream()
 	if err != nil {
 		return E.Cause(err, "open handshake stream")
@@ -217,7 +217,7 @@ func (c *Client) CloseWithError(err error) error {
 }
 
 type clientQUICConnection struct {
-	quicConn     quic.Connection
+	quicConn     *quic.Conn
 	rawConn      io.Closer
 	closeOnce    sync.Once
 	connDone     chan struct{}
@@ -251,7 +251,7 @@ func (c *clientQUICConnection) closeWithError(err error) {
 }
 
 type clientConn struct {
-	quic.Stream
+	*quic.Stream
 	parent         *clientQUICConnection
 	destination    M.Socksaddr
 	requestWritten bool

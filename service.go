@@ -163,7 +163,7 @@ func (s *Service[U]) Close() error {
 	)
 }
 
-func (s *Service[U]) handleConnection(connection quic.Connection) {
+func (s *Service[U]) handleConnection(connection *quic.Conn) {
 	setCongestion(s.ctx, connection, s.congestionControl)
 	session := &serverSession[U]{
 		Service:    s,
@@ -179,7 +179,7 @@ func (s *Service[U]) handleConnection(connection quic.Connection) {
 type serverSession[U comparable] struct {
 	*Service[U]
 	ctx        context.Context
-	quicConn   quic.Connection
+	quicConn   *quic.Conn
 	connAccess sync.Mutex
 	connDone   chan struct{}
 	connErr    error
@@ -220,7 +220,7 @@ func (s *serverSession[U]) loopUniStreams() {
 	}
 }
 
-func (s *serverSession[U]) handleUniStream(stream quic.ReceiveStream) (error, uint64) {
+func (s *serverSession[U]) handleUniStream(stream *quic.ReceiveStream) (error, uint64) {
 	defer stream.CancelRead(0)
 	buffer := buf.New()
 	defer buffer.Release()
@@ -334,7 +334,7 @@ func (s *serverSession[U]) loopStreams() {
 	}
 }
 
-func (s *serverSession[U]) handleStream(stream quic.Stream) (error, uint64) {
+func (s *serverSession[U]) handleStream(stream *quic.Stream) (error, uint64) {
 	buffer := buf.NewSize(2 + M.MaxSocksaddrLength)
 	defer buffer.Release()
 	_, err := buffer.ReadAtLeastFrom(stream, 2)
@@ -388,7 +388,7 @@ func (s *serverSession[U]) closeWithError(err error, errCode uint64) {
 }
 
 type serverConn struct {
-	quic.Stream
+	*quic.Stream
 	destination     M.Socksaddr
 	responseWritten bool
 }

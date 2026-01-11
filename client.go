@@ -11,6 +11,7 @@ import (
 	"github.com/sagernet/quic-go"
 	"github.com/sagernet/sing-quic"
 	"github.com/sagernet/sing/common"
+	"github.com/sagernet/sing/common/baderror"
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
@@ -284,7 +285,7 @@ func (c *clientConn) Read(b []byte) (n int, err error) {
 		c.responseRead = true
 	}
 	n, err = c.Stream.Read(b)
-	return n, qtls.WrapError(err)
+	return n, baderror.WrapQUIC(err)
 }
 
 func (c *clientConn) Write(b []byte) (n int, err error) {
@@ -301,13 +302,13 @@ func (c *clientConn) Write(b []byte) (n int, err error) {
 		_, err = c.Stream.Write(request.Bytes())
 		if err != nil {
 			c.parent.closeWithError(E.Cause(err, "create new connection"))
-			return 0, qtls.WrapError(err)
+			return 0, baderror.WrapQUIC(err)
 		}
 		c.requestWritten = true
 		return len(b), nil
 	}
 	n, err = c.Stream.Write(b)
-	return n, qtls.WrapError(err)
+	return n, baderror.WrapQUIC(err)
 }
 
 func (c *clientConn) Close() error {

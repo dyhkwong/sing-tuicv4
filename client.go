@@ -31,6 +31,8 @@ type ClientOptions struct {
 	UDPMTU            int
 	ZeroRTTHandshake  bool
 	Heartbeat         time.Duration
+
+	allowAllCongestionControl bool // do not export
 }
 
 type Client struct {
@@ -62,9 +64,11 @@ func NewClient(options ClientOptions) (*Client, error) {
 	switch options.CongestionControl {
 	case "":
 		options.CongestionControl = "cubic"
-	case "cubic", "new_reno", "bbr":
+	case "cubic", "new_reno", "bbr", "bbr2":
 	default:
-		return nil, E.New("unknown congestion control algorithm: ", options.CongestionControl)
+		if !options.allowAllCongestionControl {
+			return nil, E.New("unknown congestion control algorithm: ", options.CongestionControl)
+		}
 	}
 	udpMTU := options.UDPMTU
 	if udpMTU == 0 {

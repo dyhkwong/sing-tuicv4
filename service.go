@@ -37,6 +37,8 @@ type ServiceOptions struct {
 	UDPTimeout        time.Duration
 	UDPMTU            int
 	Handler           ServiceHandler
+
+	allowAllCongestionControl bool // do not export
 }
 
 type ServiceHandler interface {
@@ -77,9 +79,11 @@ func NewService[U comparable](options ServiceOptions) (*Service[U], error) {
 	switch options.CongestionControl {
 	case "":
 		options.CongestionControl = "cubic"
-	case "cubic", "new_reno", "bbr":
+	case "cubic", "new_reno", "bbr", "bbr2":
 	default:
-		return nil, E.New("unknown congestion control algorithm: ", options.CongestionControl)
+		if !options.allowAllCongestionControl {
+			return nil, E.New("unknown congestion control algorithm: ", options.CongestionControl)
+		}
 	}
 	udpMTU := options.UDPMTU
 	if udpMTU == 0 {

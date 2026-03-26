@@ -265,20 +265,29 @@ func (c *clientConn) NeedHandshake() bool {
 	return !c.requestWritten
 }
 
-func (c *clientConn) Read(b []byte) (n int, err error) {
+func (c *clientConn) Read(b []byte) (int, error) {
 	if !c.responseRead {
 		// TUIC is not resistant to active detection at all,
 		// so it is okay to read byte-by-byte.
 		var data [1]byte
-		_, err = c.Stream.Read(data[:])
+		_, err := c.Stream.Read(data[:])
+		if err != nil {
+			return 0, wrapQUICError(err)
+		}
 		if data[0] != Version {
 			return 0, E.New("unknown version: ", data[0])
 		}
 		_, err = c.Stream.Read(data[:])
+		if err != nil {
+			return 0, wrapQUICError(err)
+		}
 		if data[0] != CommandResponse {
 			return 0, E.New("unknown command: ", data[0])
 		}
 		_, err = c.Stream.Read(data[:])
+		if err != nil {
+			return 0, wrapQUICError(err)
+		}
 		if data[0] == OptionResponseFailed {
 			return 0, E.New("response failed")
 		}
@@ -287,31 +296,31 @@ func (c *clientConn) Read(b []byte) (n int, err error) {
 		}
 		c.responseRead = true
 	}
-	n, err = c.Stream.Read(b)
-	return n, qtls.WrapError(err)
+	n, err := c.Stream.Read(b)
+	return n, wrapQUICError(err)
 }
 
-func (c *clientConn) Write(b []byte) (n int, err error) {
+func (c *clientConn) Write(b []byte) (int, error) {
 	if !c.requestWritten {
 		request := buf.NewSize(2 + AddressSerializer.AddrPortLen(c.destination) + len(b))
 		defer request.Release()
 		request.WriteByte(Version)
 		request.WriteByte(CommandConnect)
-		err = AddressSerializer.WriteAddrPort(request, c.destination)
+		err := AddressSerializer.WriteAddrPort(request, c.destination)
 		if err != nil {
-			return n, err
+			return 0, wrapQUICError(err)
 		}
 		request.Write(b)
 		_, err = c.Stream.Write(request.Bytes())
 		if err != nil {
 			c.parent.closeWithError(E.Cause(err, "create new connection"))
-			return 0, qtls.WrapError(err)
+			return 0, wrapQUICError(err)
 		}
 		c.requestWritten = true
 		return len(b), nil
 	}
-	n, err = c.Stream.Write(b)
-	return n, qtls.WrapError(err)
+	n, err := c.Stream.Write(b)
+	return n, wrapQUICError(err)
 }
 
 func (c *clientConn) Close() error {

@@ -1,5 +1,11 @@
 package tuicv4
 
+import (
+	"io"
+
+	qtls "github.com/sagernet/sing-quic"
+)
+
 const (
 	Version = 4
 )
@@ -23,3 +29,10 @@ const (
 )
 
 const AuthenticateLen = 2 + 32
+
+func wrapQUICError(err error) error {
+	if err == io.EOF {
+		return io.EOF
+	}
+	return qtls.WrapError(err)
+}

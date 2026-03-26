@@ -396,12 +396,12 @@ type serverConn struct {
 	responseWritten bool
 }
 
-func (c *serverConn) Read(p []byte) (n int, err error) {
-	n, err = c.Stream.Read(p)
-	return n, qtls.WrapError(err)
+func (c *serverConn) Read(p []byte) (int, error) {
+	n, err := c.Stream.Read(p)
+	return n, wrapQUICError(err)
 }
 
-func (c *serverConn) Write(p []byte) (n int, err error) {
+func (c *serverConn) Write(p []byte) (int, error) {
 	if !c.responseWritten {
 		response := buf.NewSize(3 + len(p))
 		defer response.Release()
@@ -409,15 +409,15 @@ func (c *serverConn) Write(p []byte) (n int, err error) {
 		response.WriteByte(CommandResponse)
 		response.WriteByte(OptionResponseSuccess)
 		response.Write(p)
-		_, err = c.Stream.Write(response.Bytes())
+		_, err := c.Stream.Write(response.Bytes())
 		if err != nil {
-			return 0, qtls.WrapError(err)
+			return 0, wrapQUICError(err)
 		}
 		c.responseWritten = true
 		return len(p), nil
 	}
-	n, err = c.Stream.Write(p)
-	return n, qtls.WrapError(err)
+	n, err := c.Stream.Write(p)
+	return n, wrapQUICError(err)
 }
 
 func (c *serverConn) LocalAddr() net.Addr {
